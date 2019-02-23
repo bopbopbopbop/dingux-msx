@@ -3,9 +3,13 @@
 #
 # by pingflood; 2018
 #
+# modified by RANDOMIZE to compile for RS07 and RS97; 2019
+#
+#
+#
 
-CHAINPREFIX := /opt/rs97-toolchain
-CROSS_COMPILE := $(CHAINPREFIX)/usr/bin/mipsel-linux-
+CHAINPREFIX := /opt/buildroot-musl/output/host
+CROSS_COMPILE := $(CHAINPREFIX)/usr/bin/mipsel-buildroot-linux-musl-
 
 CC = $(CROSS_COMPILE)gcc
 CXX = $(CROSS_COMPILE)g++
@@ -45,7 +49,9 @@ OBJS = ./src/gp2x_psp.o \
 
 DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 
-MORE_CFLAGS  = -DFMSX -DUNIX -DNARROW -DSOUND -DBPP16 -DSDL -DLSB_FIRST -std=gnu11
+MORE_CFLAGS  = -DRS07 
+#MORE_CFLAGS  = -DRS97 
+MORE_CFLAGS += -DFMSX -DUNIX -DNARROW -DSOUND -DBPP16 -DSDL -DLSB_FIRST -std=gnu11
 MORE_CFLAGS += -I. -I$(CHAINPREFIX)/usr/include/
 MORE_CFLAGS += -DMPU_JZ4740 -mips32 -G0
 MORE_CFLAGS += -O3 -fsigned-char -ffast-math -fomit-frame-pointer -fno-strength-reduce
@@ -67,7 +73,7 @@ LIBS += -L$(SYSROOT)/usr/lib
 CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS) 
 
 .c.o:
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(INC) -c $< -o $@
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) $(CFLAGS) $(OBJS) $(LIBS) -o $(TARGET) && $(STRIP) $(TARGET)

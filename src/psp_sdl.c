@@ -432,13 +432,71 @@ psp_sdl_unlock(void)
   SDL_UnlockSurface(back_surface);
 }
 
+#ifdef RS07
+#define SOURCE_HEIGHT 240
+#define AVERAGEHI(AB) ((((AB) & 0xF7DE0000) >> 1) + (((AB) & 0xF7DE) << 15))
+#define AVERAGELO(CD) ((((CD) & 0xF7DE) >> 1) + (((CD) & 0xF7DE0000) >> 17))
+#endif
+
 void
 psp_sdl_flip(void)
 {
   // if(SDL_MUSTLOCK(ScreenSurface)) SDL_LockSurface(ScreenSurface);
-  uint32_t *s = (uint32_t*)back_surface->pixels;
-  uint32_t *d = (uint32_t*)ScreenSurface->pixels;
+  uint32_t *src = (uint32_t*)back_surface->pixels;
+  uint32_t *dst = (uint32_t*)ScreenSurface->pixels;
+  
+   uint32_t Eh = 0;
+    uint32_t source = 0;
+    uint32_t dh = 0;
+    uint32_t y, x;
+
+
+	
+	#ifdef RS07
+	for (y = 0; y < 272; y++)
+	{
+		source = dh * 320/2;
+
+		dst+=20;
+		
+		for (x = 0; x < 480/12; x++)
+		{
+                    register uint32_t ab, cd, ef, gh;
+
+                    __builtin_prefetch(dst + 4, 1);
+                    __builtin_prefetch(src + source + 4, 0);
+
+                    ab = src[source] & 0xF7DEF7DE;
+                    cd = src[source + 1] & 0xF7DEF7DE;
+                    ef = src[source + 2] & 0xF7DEF7DE;
+                    gh = src[source + 3] & 0xF7DEF7DE;
+
+
+                    *dst++ = ab;
+                    *dst++ = cd;
+
+                    *dst++ = (ef & 0xFFFF) + AVERAGEHI(ef);
+                    *dst++ = (ef >> 16) + ((gh & 0xFFFF) << 16);
+                    *dst++ = (gh & 0xFFFF0000) + AVERAGELO(gh);
+
+                    source += 4;
+
+		}
+
+		dst+=20;
+
+		Eh += SOURCE_HEIGHT;
+		if(Eh >= 272)
+		{
+			Eh -= 272;
+			dh++; 
+		}
+	}
+  
+  #endif
+  #ifdef RS97
   for(uint8_t y = 0; y < 240; y++, s += 160, d += 320) memmove(d, s, 1280); // double-line fix by pingflood, 2018
+  #endif
   // if(SDL_MUSTLOCK(ScreenSurface)) SDL_UnlockSurface(ScreenSurface);
   SDL_Flip(ScreenSurface);
 }
@@ -657,6 +715,7 @@ psp_sdl_save_screenshot(void)
   psp_sdl_save_screenshot_png(TmpFileName);
 }
 
+
 int
 psp_sdl_init(void)
 {
@@ -672,8 +731,16 @@ psp_sdl_init(void)
 
   psp_sdl_select_font_6x10();
 
+  #ifdef RS97
   ScreenSurface=SDL_SetVideoMode(320, 480, 16, SDL_HWSURFACE);
-  back_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, PSP_SDL_SCREEN_WIDTH, PSP_SDL_SCREEN_HEIGHT, 16, 0, 0, 0, 0);
+  #endif
+  
+  #ifdef RS07
+  ScreenSurface=SDL_SetVideoMode(480, 272, 16, SDL_HWSURFACE);
+  #endif
+  
+  
+  back_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
 
   if ( !back_surface) {
     return 0;
