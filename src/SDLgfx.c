@@ -164,6 +164,14 @@ msx_change_render_mode(int new_render_mode)
   } else {
     msx_set_direct_surface();
   }
+  
+  #ifdef RS07
+		//clear the screen
+		psp_sdl_black_screen();
+		
+  #endif
+  
+  
   MSX.msx_render_mode = new_render_mode;
 }
 
@@ -534,11 +542,18 @@ void RefreshScreen(void)
     //   if (MSX.msx_render_mode == MSX_RENDER_NORMAL) PutImage_normal(); 
     //   else /* if (MSX.msx_render_mode == MSX_RENDER_FIT   ) */ PutImage_fit_width(); 
     // }
+	
+	#ifdef RS07
+	if (MSX.msx_render_mode == MSX_RENDER_FAST) msx_set_direct_surface();
+	else PutImage_normal();
+
+	#else
     if (MSX.msx_render_mode == MSX_RENDER_FIT) PutImage_fit_width();
     else if (MSX.msx_render_mode == MSX_RENDER_ZOOM) PutImage_zoomed();
     else if (MSX.msx_render_mode == MSX_RENDER_FULL) PutImage_fullscreen();
     else /*if (MSX.msx_render_mode == MSX_RENDER_FAST) */ msx_set_direct_surface();
-
+	#endif
+	
     if (psp_kbd_is_danzeff_mode()) {
       danzeff_moveTo(-30, -75);
       danzeff_render();

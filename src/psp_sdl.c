@@ -445,54 +445,170 @@ psp_sdl_flip(void)
   uint32_t *src = (uint32_t*)back_surface->pixels;
   uint32_t *dst = (uint32_t*)ScreenSurface->pixels;
   
-   uint32_t Eh = 0;
-    uint32_t source = 0;
-    uint32_t dh = 0;
-    uint32_t y, x;
-
+ 
 
 	
 	#ifdef RS07
-	for (y = 0; y < 272; y++)
+	/**
+
+MSX_RENDER_FIT,
+MSX_RENDER_ZOOM,
+MSX_RENDER_FULL,
+MSX_LAST_RENDER
+	*/
+	
+	uint32_t Eh = 0;
+	uint32_t source = 0;
+	uint32_t dh = 0;
+	uint32_t y, x;
+	
+	switch ( MSX.msx_render_mode ) 
 	{
-		source = dh * 320/2;
-
-		dst+=20;
+		default :
+		case MSX_RENDER_ZOOM :
 		
-		for (x = 0; x < 480/12; x++)
-		{
-                    register uint32_t ab, cd, ef, gh;
+			for (y = 0; y < 272; y++)
+			{
+				source = dh * 320/2;
 
-                    __builtin_prefetch(dst + 4, 1);
-                    __builtin_prefetch(src + source + 4, 0);
+				dst+=20;
+				
+				for (x = 0; x < 480/12; x++)
+				{
+							register uint32_t ab, cd, ef, gh;
 
-                    ab = src[source] & 0xF7DEF7DE;
-                    cd = src[source + 1] & 0xF7DEF7DE;
-                    ef = src[source + 2] & 0xF7DEF7DE;
-                    gh = src[source + 3] & 0xF7DEF7DE;
+							__builtin_prefetch(dst + 4, 1);
+							__builtin_prefetch(src + source + 4, 0);
+
+							ab = src[source] & 0xF7DEF7DE;
+							cd = src[source + 1] & 0xF7DEF7DE;
+							ef = src[source + 2] & 0xF7DEF7DE;
+							gh = src[source + 3] & 0xF7DEF7DE;
 
 
-                    *dst++ = ab;
-                    *dst++ = cd;
+							*dst++ = ab;
+							*dst++ = cd;
 
-                    *dst++ = (ef & 0xFFFF) + AVERAGEHI(ef);
-                    *dst++ = (ef >> 16) + ((gh & 0xFFFF) << 16);
-                    *dst++ = (gh & 0xFFFF0000) + AVERAGELO(gh);
+							*dst++ = (ef & 0xFFFF) + AVERAGEHI(ef);
+							*dst++ = (ef >> 16) + ((gh & 0xFFFF) << 16);
+							*dst++ = (gh & 0xFFFF0000) + AVERAGELO(gh);
 
-                    source += 4;
+							source += 4;
 
-		}
+				}
 
-		dst+=20;
+				dst+=20;
 
-		Eh += SOURCE_HEIGHT;
-		if(Eh >= 272)
-		{
-			Eh -= 272;
-			dh++; 
-		}
+				Eh += SOURCE_HEIGHT;
+				if(Eh >= 272)
+				{
+					Eh -= 272;
+					dh++; 
+				}
+			}
+		
+		break;
+		
+		case MSX_RENDER_FAST :
+			
+			dst += (240 * 16);
+			
+			for (y = 0; y < 240; y++)
+			{
+				source = dh * 320/2;
+
+				dst+=40;
+				
+				
+				for (x = 0; x < 480/12; x++)
+				{
+							register uint32_t ab, cd, ef, gh;
+
+							__builtin_prefetch(dst + 4, 1);
+							__builtin_prefetch(src + source + 4, 0);
+
+							ab = src[source] & 0xF7DEF7DE;
+							cd = src[source + 1] & 0xF7DEF7DE;
+							ef = src[source + 2] & 0xF7DEF7DE;
+							gh = src[source + 3] & 0xF7DEF7DE;
+
+
+							*dst++ = ab;
+							*dst++ = cd;
+							*dst++ = ef;
+							*dst++ = gh;
+
+							
+							
+							
+						//	*dst++ = (ef & 0xFFFF) + AVERAGEHI(ef);
+							//*dst++ = (ef >> 16) + ((gh & 0xFFFF) << 16);
+							//*dst++ = (gh & 0xFFFF0000) + AVERAGELO(gh);
+
+							source += 4;
+
+				}
+
+				dst+=40;
+
+				
+				dh++; 
+				
+			}	
+		
+		break;
+		
+		case MSX_RENDER_FULL :
+		
+			for (y = 0; y < 272; y++)
+			{
+				source = dh * 320/2;
+
+				for (x = 0; x < 480/6; x++)
+				{
+					register uint32_t ab, cd;
+
+					__builtin_prefetch(dst + 4, 1);
+					__builtin_prefetch(src + source + 4, 0);
+
+					ab = src[source] & 0xF7DEF7DE;
+					cd = src[source + 1] & 0xF7DEF7DE;
+					
+					*dst++ = (ab & 0xFFFF) + AVERAGEHI(ab);
+					*dst++ = (ab >> 16) + ((cd & 0xFFFF) << 16);
+					*dst++ = (cd & 0xFFFF0000) + AVERAGELO(cd);
+
+					source += 2;
+				}
+				Eh += SOURCE_HEIGHT;
+				if(Eh >= 272)
+				{
+					Eh -= 272;
+					dh++; 
+				}
+			}
+			
+			
+		
+		break;
+		
+		
+		
+		
+		
 	}
-  
+		
+	
+	
+		
+
+		
+		
+		
+		
+	
+	
+	
   #endif
   #ifdef RS97
   for(uint8_t y = 0; y < 240; y++, s += 160, d += 320) memmove(d, s, 1280); // double-line fix by pingflood, 2018
@@ -733,15 +849,16 @@ psp_sdl_init(void)
 
   #ifdef RS97
   ScreenSurface=SDL_SetVideoMode(320, 480, 16, SDL_HWSURFACE);
+  back_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
   #endif
   
   #ifdef RS07
   ScreenSurface=SDL_SetVideoMode(480, 272, 16, SDL_HWSURFACE);
+  back_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
   #endif
   
   
-  back_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
-
+  
   if ( !back_surface) {
     return 0;
   }
