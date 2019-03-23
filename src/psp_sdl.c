@@ -432,7 +432,7 @@ psp_sdl_unlock(void)
   SDL_UnlockSurface(back_surface);
 }
 
-#ifdef RS07
+#if defined (RS07) || defined (GAMETA)
 #define SOURCE_HEIGHT 240
 #define AVERAGEHI(AB) ((((AB) & 0xF7DE0000) >> 1) + (((AB) & 0xF7DE) << 15))
 #define AVERAGELO(CD) ((((CD) & 0xF7DE) >> 1) + (((CD) & 0xF7DE0000) >> 17))
@@ -448,14 +448,14 @@ psp_sdl_flip(void)
  
 
 	
-	#ifdef RS07
+	#if defined (RS07) || defined (GAMETA)
 	/**
 
-MSX_RENDER_FIT,
-MSX_RENDER_ZOOM,
-MSX_RENDER_FULL,
-MSX_LAST_RENDER
-	*/
+	MSX_RENDER_FIT,
+	MSX_RENDER_ZOOM,
+	MSX_RENDER_FULL,
+	MSX_LAST_RENDER
+		*/
 	
 	uint32_t Eh = 0;
 	uint32_t source = 0;
@@ -588,30 +588,15 @@ MSX_LAST_RENDER
 				}
 			}
 			
-			
-		
 		break;
-		
-		
-		
-		
-		
+			
 	}
-		
-	
-	
-		
 
-		
-		
-		
-		
-	
-	
-	
   #endif
+  
+  
   #ifdef RS97
-  for(uint8_t y = 0; y < 240; y++, s += 160, d += 320) memmove(d, s, 1280); // double-line fix by pingflood, 2018
+  //for(uint8_t y = 0; y < 240; y++, src += 160, dst += 320) memmove(dst, src, 1280); // double-line fix by pingflood, 2018
   #endif
   // if(SDL_MUSTLOCK(ScreenSurface)) SDL_UnlockSurface(ScreenSurface);
   SDL_Flip(ScreenSurface);
@@ -840,7 +825,12 @@ psp_sdl_init(void)
   }
   SDL_JoystickEventState(SDL_ENABLE);
   SDL_JoystickOpen(0);
-
+	
+  #ifdef RS07
+	SDL_JoystickOpen(1);
+	SDL_JoystickOpen(2);
+  #endif  
+	
   if (SDL_InitSubSystem(SDL_INIT_VIDEO) < 0) {
     return 0;
   }
@@ -857,7 +847,10 @@ psp_sdl_init(void)
   back_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
   #endif
   
-  
+  #ifdef GAMETA
+  ScreenSurface=SDL_SetVideoMode(480, 320, 16, SDL_HWSURFACE);
+  back_surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
+  #endif
   
   if ( !back_surface) {
     return 0;

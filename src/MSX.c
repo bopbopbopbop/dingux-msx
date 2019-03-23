@@ -2628,7 +2628,7 @@ msx_default_settings()
   MSX.msx_use_8950        = 0;
   MSX.msx_uperiod         = 100;
   MSX.msx_use_2413        = 0;
-  #ifdef RS07
+  #if defined(RS07) || defined(GAMETA)
   MSX.msx_render_mode     = MSX_RENDER_ZOOM;
   #else
   MSX.msx_render_mode     = MSX_RENDER_FAST;

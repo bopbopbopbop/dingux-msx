@@ -165,7 +165,7 @@ msx_change_render_mode(int new_render_mode)
     msx_set_direct_surface();
   }
   
-  #ifdef RS07
+  #if defined(RS07) || defined(GAMETA)
 		//clear the screen
 		psp_sdl_black_screen();
 		
@@ -543,7 +543,7 @@ void RefreshScreen(void)
     //   else /* if (MSX.msx_render_mode == MSX_RENDER_FIT   ) */ PutImage_fit_width(); 
     // }
 	
-	#ifdef RS07
+	#if defined(RS07) || defined (GAMETA)
 	if (MSX.msx_render_mode == MSX_RENDER_FAST) msx_set_direct_surface();
 	else PutImage_normal();
 
